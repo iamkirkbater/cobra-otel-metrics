@@ -8,7 +8,7 @@ The goal is to give Cobra CLI maintainers an extremely simple way to start colle
 
 ## Features
 
-- **Easy Integration**: Simple setup for Cobra CLI applications
+- **Easy Integration**: Extremely simple setup for new and existing Cobra CLI applications
 - **Signal Handling**: Proper signal handling for graceful shutdowns
 
 ## Planned Features
@@ -26,6 +26,8 @@ go get github.com/iamkirkbater/cobra-otel-metrics
 ## Quick Start
 
 ### Basic Usage
+
+Simply create one or many otel exporters, wrap your root command in a `metrics.Command` wrapper, and then run the metrics setup function passing in your exporter(s).
 
 See the `examples` in the [examples](/examples) directory for usage examples.
 
