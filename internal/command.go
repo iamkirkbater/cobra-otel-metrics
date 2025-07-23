@@ -31,13 +31,12 @@ func GetRootCmdName(cmd *cobra.Command) string {
 // Loops through all provided flags and converts ONLY the
 // name of the flag (NOT THE VALUE) to an attribute for
 // additional metric collection
-func ParseCmdFlagsToAttributes(cmd *cobra.Command) attribute.Set {
+func ParseCmdFlagsToAttributes(cmd *cobra.Command) []attribute.KeyValue {
 	flags := []attribute.KeyValue{}
 	parseFlag := func(f *pflag.Flag) {
-		flags = append(flags, attribute.String(f.Name, "1"))
+		flags = append(flags, attribute.Int(f.Name, 1))
 	}
 	cmd.Flags().Visit(parseFlag)
 
-	flagsAttrSet, _ := attribute.NewSetWithFiltered(flags, nil)
-	return flagsAttrSet
+	return flags
 }

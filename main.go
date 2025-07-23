@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/iamkirkbater/cobra-otel-metrics/internal"
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
@@ -165,7 +167,17 @@ func createInvocationMetric(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to create counter: %w", err)
 	}
 
-	counter.Add(context.Background(), 1, metric.WithAttributeSet(internal.ParseCmdFlagsToAttributes(cmd)))
+	attributes := internal.ParseCmdFlagsToAttributes(cmd)
+
+	isTTY := false
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		isTTY = true
+	}
+	attributes = append(attributes, attribute.Bool("tty", isTTY))
+
+	attributeSet, _ := attribute.NewSetWithFiltered(attributes, nil)
+
+	counter.Add(context.Background(), 1, metric.WithAttributeSet(attributeSet))
 
 	return nil
 }
