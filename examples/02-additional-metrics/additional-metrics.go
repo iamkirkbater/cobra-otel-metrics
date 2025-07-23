@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	metrics "github.com/iamkirkbater/cobra-otel-metrics"
@@ -13,23 +14,29 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// This example shows how you can create additional metrics to pass into your
+// application to have it measure additional things.
+
 func main() {
-	var rootCmd = &cobra.Command{
-		Use:   "example",
-		Short: "Example CLI application with OpenTelemetry metrics",
-		RunE:  runExample,
+	var rootCmd = metrics.Command{
+		Command: cobra.Command{
+			Use:   "example",
+			Short: "Example CLI application with OpenTelemetry metrics",
+			RunE:  runExample,
+		},
 	}
 
-	stdoutExp, err := stdoutmetric.New()
+	stdErrExp, err := stdoutmetric.New(
+		stdoutmetric.WithPrettyPrint(),
+		stdoutmetric.WithWriter(os.Stderr),
+	)
 	if err != nil {
 		log.Fatal("Failed to setup stdoutExporter:", err)
 	}
 
-	// Setup metrics for the Cobra command
-	err = metrics.SetupCobraMetrics(
-		rootCmd,
-		metrics.WithServiceName("example-service"), // Service name
-		metrics.WithExporter(stdoutExp),
+	rootCmd.SetupMetrics(
+		metrics.WithServiceName("example-service"),
+		metrics.WithExporter(stdErrExp),
 	)
 	if err != nil {
 		log.Fatal("Failed to setup metrics:", err)

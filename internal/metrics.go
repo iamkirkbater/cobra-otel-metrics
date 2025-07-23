@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	metricSdk "go.opentelemetry.io/otel/sdk/metric"
@@ -13,9 +14,8 @@ import (
 )
 
 type Config struct {
-	PrintToStdout bool
-	ServiceName   string
-	Exporters     []metricSdk.Exporter
+	ServiceName string
+	Exporters   []metricSdk.Exporter
 }
 
 type MetricsProvider struct {
@@ -29,9 +29,9 @@ var (
 	Exporters []metricSdk.Exporter
 )
 
-func NewConfig(opts ...Option) (*Config, error) {
+func NewConfig(cmd *cobra.Command, opts ...Option) (*Config, error) {
 	config := &Config{
-		PrintToStdout: false,
+		ServiceName: GetRootCmdName(cmd),
 	}
 
 	for _, opt := range opts {
@@ -69,25 +69,6 @@ func NewMetricsProvider(ctx context.Context, config *Config) (*MetricsProvider, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
-
-	// if config.Exporters.GRPC != nil {
-	// 	grpcConfig := config.Exporters.GRPC
-	// 	// Create OTLP exporter
-	// 	var dialOpts []grpc.DialOption
-	// 	if grpcConfig.AllowInsecure {
-	// 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// 	}
-
-	// 	exporter, err := otlpmetricgrpc.New(ctx,
-	// 		otlpmetricgrpc.WithEndpoint(config.Exporters.GRPC.CollectorURL),
-	// 		otlpmetricgrpc.WithDialOption(dialOpts...),
-	// 	)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
-	// 	}
-
-	// 	Exporters = append(Exporters, exporter)
-	// }
 
 	provider := metricSdk.NewMeterProvider(
 		metricSdk.WithResource(res),
