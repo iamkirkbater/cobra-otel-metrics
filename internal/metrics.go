@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 	metricSdk "go.opentelemetry.io/otel/sdk/metric"
 	resourceSdk "go.opentelemetry.io/otel/sdk/resource"
@@ -29,6 +28,8 @@ var (
 	Exporters []metricSdk.Exporter
 )
 
+var ErrServiceNameEmpty = errors.New("Service Name cannot be empty")
+
 func NewConfig(cmd *cobra.Command, opts ...Option) (*Config, error) {
 	config := &Config{
 		ServiceName: GetRootCmdName(cmd),
@@ -50,13 +51,11 @@ func NewConfig(cmd *cobra.Command, opts ...Option) (*Config, error) {
 }
 
 func (c *Config) validate() error {
-	var serviceNameEmptyErr error
-
 	if c.ServiceName == "" {
-		serviceNameEmptyErr = errors.New("Service Name cannot be empty")
+		return errors.Join(ErrServiceNameEmpty)
 	}
 
-	return errors.Join(serviceNameEmptyErr)
+	return nil
 }
 
 func NewMetricsProvider(ctx context.Context, config *Config) (*MetricsProvider, error) {
@@ -74,9 +73,6 @@ func NewMetricsProvider(ctx context.Context, config *Config) (*MetricsProvider, 
 		metricSdk.WithResource(res),
 		metricSdk.WithReader(Reader),
 	)
-
-	// Set global meter provider
-	otel.SetMeterProvider(provider)
 
 	// Create meter
 	meter := provider.Meter("cobra-otel-metrics")
