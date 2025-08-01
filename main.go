@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/iamkirkbater/cobra-otel-metrics/internal"
-	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -54,6 +53,30 @@ func (c *Command) SetupMetrics(options ...Option) error {
 	return nil
 }
 
+func wrapPreRun(cmd *cobra.Command, force bool) {
+	originalPreRunE := cmd.PersistentPreRunE
+	originalPreRun := cmd.PersistentPreRun
+	if originalPreRunE != nil || originalPreRun != nil || force {
+		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+			// create the initial metric around the command called
+			err := internal.HandleMetricsOptIn(cmd)
+			if err != nil {
+				return err
+			}
+			err = createInvocationMetric(cmd)
+			if err != nil {
+				return err
+			}
+
+			// Run original PreRunE if it exists
+			if originalPreRunE != nil {
+				return originalPreRunE(cmd, args)
+			}
+			return nil
+		}
+	}
+}
+
 func wrapPostRun(cmd *cobra.Command, force bool) {
 	originalPostRunE := cmd.PersistentPostRunE
 	originalPostRun := cmd.PersistentPostRun
@@ -69,26 +92,6 @@ func wrapPostRun(cmd *cobra.Command, force bool) {
 
 			// return the original error if it exists
 			return originalPostRunErr
-		}
-	}
-}
-
-func wrapPreRun(cmd *cobra.Command, force bool) {
-	originalPreRunE := cmd.PersistentPreRunE
-	originalPreRun := cmd.PersistentPreRun
-	if originalPreRunE != nil || originalPreRun != nil || force {
-		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-			// create the initial metric around the command called
-			err := createInvocationMetric(cmd)
-			if err != nil {
-				return err
-			}
-
-			// Run original PreRunE if it exists
-			if originalPreRunE != nil {
-				return originalPreRunE(cmd, args)
-			}
-			return nil
 		}
 	}
 }
@@ -144,6 +147,15 @@ func (c *Command) cleanup() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
+	// If the user has opted OUT of metric collection
+	// we just exit here. This allows the metrics to
+	// be collected as normal throughout the tool
+	// and transparent to the CLI maintainer if they
+	// are collecting additional metrics
+	if !internal.UserHasOptedInForMetrics {
+		return
+	}
+
 	collectedMetrics := &metricdata.ResourceMetrics{}
 	internal.Reader.Collect(c.ctx, collectedMetrics)
 
@@ -168,12 +180,7 @@ func createInvocationMetric(cmd *cobra.Command) error {
 	}
 
 	attributes := internal.ParseCmdFlagsToAttributes(cmd)
-
-	isTTY := false
-	if isatty.IsTerminal(os.Stdin.Fd()) {
-		isTTY = true
-	}
-	attributes = append(attributes, attribute.Bool("tty", isTTY))
+	attributes = append(attributes, attribute.Bool("tty", internal.IsTTY()))
 
 	attributeSet, _ := attribute.NewSetWithFiltered(attributes, nil)
 
