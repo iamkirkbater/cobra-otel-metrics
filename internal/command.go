@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"os"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.opentelemetry.io/otel/attribute"
@@ -39,4 +41,13 @@ func ParseCmdFlagsToAttributes(cmd *cobra.Command) []attribute.KeyValue {
 	cmd.Flags().Visit(parseFlag)
 
 	return flags
+}
+
+// Determines if the command is being run interactively
+func IsTTY() bool {
+	isTTY := false
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		isTTY = true
+	}
+	return isTTY
 }
