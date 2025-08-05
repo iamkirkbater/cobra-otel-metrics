@@ -160,7 +160,10 @@ func (c *Command) cleanup() {
 	internal.Reader.Collect(c.ctx, collectedMetrics)
 
 	for _, exporter := range internal.Exporters {
-		exporter.Export(c.ctx, collectedMetrics)
+		err := exporter.Export(c.ctx, collectedMetrics)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error exporting metrics: %v\n", err)
+		}
 	}
 
 	if err := shutdown(shutdownCtx); err != nil {

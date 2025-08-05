@@ -8,8 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/metric"
 	metricSdk "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	resourceSdk "go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
 type Config struct {
@@ -24,9 +25,25 @@ type MetricsProvider struct {
 }
 
 var (
-	Reader    = metricSdk.NewManualReader()
+	Reader    = metricSdk.NewManualReader(metricSdk.WithTemporalitySelector(deltaSelector))
 	Exporters []metricSdk.Exporter
 )
+
+func deltaSelector(kind metricSdk.InstrumentKind) metricdata.Temporality {
+	switch kind {
+	case metricSdk.InstrumentKindCounter,
+		metricSdk.InstrumentKindGauge,
+		metricSdk.InstrumentKindHistogram,
+		metricSdk.InstrumentKindObservableGauge,
+		metricSdk.InstrumentKindObservableCounter:
+		return metricdata.DeltaTemporality
+	case metricSdk.InstrumentKindUpDownCounter,
+		metricSdk.InstrumentKindObservableUpDownCounter:
+		return metricdata.CumulativeTemporality
+	default:
+		return metricdata.CumulativeTemporality
+	}
+}
 
 var ErrServiceNameEmpty = errors.New("Service Name cannot be empty")
 
