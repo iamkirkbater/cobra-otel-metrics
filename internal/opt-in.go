@@ -19,8 +19,9 @@ var (
 	UserHasOptedInForMetrics bool
 
 	// TODO - test this works on linux and when $HOME is not set or the path in XDG_CONFIG_HOME is not relative
-	defaultOptInDirectory       = func() string { dir, _ := os.UserConfigDir(); return dir }()
-	defaultOptInFilenamePostfix = "metrics-optin"
+	defaultOptInDirectory        = func() string { dir, _ := os.UserConfigDir(); return dir }()
+	defaultOptInFilenamePostfix  = "metrics-optin"
+	defaultOptOutFilenamePostfix = "metrics-optout"
 )
 
 var defaultConsentPrompt = `
@@ -47,12 +48,13 @@ var defaultConsentRetryMessage = "\nInvalid value detected. Only Y and N are all
 func HandleMetricsOptIn(cmd *cobra.Command) error {
 	// By default, if we have a non-interactive session let's automatically
 	// collect metrics.
+	rootCmdName := GetRootCmdName(cmd)
 	if !IsTTY() {
-		UserHasOptedInForMetrics = true
+		handleDefaultInteractiveOptOut(getDefaultOptOutFilePath(rootCmdName))
 		return nil
 	}
 
-	filePath := getDefaultConsentFilePath(GetRootCmdName(cmd))
+	filePath := getDefaultOptInFilePath(rootCmdName)
 	file, err := os.Open(filePath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -91,6 +93,15 @@ func HandleMetricsOptIn(cmd *cobra.Command) error {
 	}
 	UserHasOptedInForMetrics = userConsent
 	return nil
+}
+
+func handleDefaultInteractiveOptOut(filePath string) {
+	_, err := os.Open(filePath)
+	if errors.Is(err, fs.ErrNotExist) {
+		UserHasOptedInForMetrics = true
+		return
+	}
+	UserHasOptedInForMetrics = false
 }
 
 func printConsentPrompt() {
@@ -135,9 +146,16 @@ func saveOptInStatus(filePath string, optInStatus bool) error {
 	return err
 }
 
-func getDefaultConsentFilePath(cmdName string) string {
-	optInFilename := "." + cmdName + "-" + defaultOptInFilenamePostfix
+func getDefaultConsentFilePath(cmdName string, postfix string) string {
+	optInFilename := "." + cmdName + "-" + postfix
 	optInFilepath := filepath.Join(defaultOptInDirectory, optInFilename)
-	println(optInFilepath)
 	return optInFilepath
+}
+
+func getDefaultOptInFilePath(cmdName string) string {
+	return getDefaultConsentFilePath(cmdName, defaultOptInFilenamePostfix)
+}
+
+func getDefaultOptOutFilePath(cmdName string) string {
+	return getDefaultConsentFilePath(cmdName, defaultOptOutFilenamePostfix)
 }
