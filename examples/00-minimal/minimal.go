@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	metrics "github.com/iamkirkbater/cobra-otel-metrics"
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	http "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 )
 
 func main() {
@@ -18,10 +19,16 @@ func main() {
 		},
 	}
 
-	stdoutExporter, _ := stdoutmetric.New()
+	httpExporter, err := http.New(
+		context.Background(),
+		http.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	rootCmd.SetupMetrics(
-		metrics.WithExporter(stdoutExporter),
+		metrics.WithExporter(httpExporter),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

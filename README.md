@@ -10,12 +10,10 @@ The goal is to give Cobra CLI maintainers an extremely simple way to start colle
 
 - **Easy Integration**: Extremely simple setup for new and existing Cobra CLI applications
 - **Signal Handling**: Proper signal handling for graceful shutdowns
-
-## Planned Features
-These features are not implemented yet, but will be considered necessary to be stabilized before this will be considered stable.
-
 - **Call counter with flags**: By default, we will create a metric to count calls passing the command executed as well as the flags passed. We will explicitly NOT pass values to the flags.
-- **GDPR/Privacy/Opt-Out**: This will ship with an opt-out option for end users. Users will be prompted to opt-out and that configuration will be saved. Non-Interactive sessions will not be prompted and metrics will be shipped.
+- **GDPR/Privacy/Opt-Out**: This will ship with an opt-out option for end users. Users will be prompted to opt-out and that configuration will be saved.
+    - Non-Interactive sessions will not be prompted and metrics will be shipped.
+    - Non-Interactive sessions can be opted-out by either creating an opt-out file at the default file path or by 
 
 ## Installation
 
