@@ -140,7 +140,6 @@ func (c *Command) trap() {
 		c.cleanup()
 		os.Exit(1)
 	}()
-
 }
 
 func (c *Command) cleanup() {
@@ -173,8 +172,9 @@ func (c *Command) cleanup() {
 
 func createInvocationMetric(cmd *cobra.Command) error {
 	// Create a counter metric
+	metricName := "cli-" + internal.GetRootCmdName(cmd) + "-invocations"
 	counter, err := GetMeter().Int64Counter(
-		internal.ParseCmdName(cmd),
+		metricName,
 		metric.WithDescription("Command Invocation"),
 		metric.WithUnit("1"),
 	)
@@ -184,6 +184,7 @@ func createInvocationMetric(cmd *cobra.Command) error {
 
 	attributes := internal.ParseCmdFlagsToAttributes(cmd)
 	attributes = append(attributes, attribute.Bool("tty", internal.IsTTY()))
+	attributes = append(attributes, attribute.String("command", internal.ParseCmdName(cmd)))
 
 	attributeSet, _ := attribute.NewSetWithFiltered(attributes, nil)
 
